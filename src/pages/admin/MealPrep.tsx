@@ -522,65 +522,96 @@ export default function MealPrep() {
       {showPrintDialog && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 print:hidden"
             onClick={() => setShowPrintDialog(false)}
           >
             <div
-              className="bg-white w-full max-w-2xl rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto"
+              className="bg-white w-full max-w-2xl rounded-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-6 print:hidden">
                 <h3 className="text-lg font-bold text-gray-800">备餐单预览</h3>
                 <button onClick={() => setShowPrintDialog(false)} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="border-b-2 border-gray-800 pb-4 mb-4">
-                <div className="text-center">
-                  <div className="text-xl font-bold">智慧食堂备餐单</div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    {selectedDate} {MEAL_TYPE_LABELS[selectedMeal]}
+              <div id="print-area">
+                <div className="border-b-2 border-gray-800 pb-4 mb-4">
+                  <div className="text-center">
+                    <div className="text-xl font-bold">智慧食堂备餐单</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      {selectedDate} {MEAL_TYPE_LABELS[selectedMeal]}
+                    </div>
+                  </div>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 font-semibold">菜品</th>
+                      <th className="text-left py-2 font-semibold">档口</th>
+                      <th className="text-center py-2 font-semibold">备餐量</th>
+                      <th className="text-center py-2 font-semibold">责任人</th>
+                      <th className="text-center py-2 font-semibold">确认</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {localDishes.map(d => (
+                      <tr key={d.id} className="border-b border-gray-100">
+                        <td className="py-2.5 font-medium">{d.dishName}</td>
+                        <td className="py-2.5 text-gray-600">{d.stallName}</td>
+                        <td className="py-2.5 text-center font-bold text-lg">{d.finalAmount}</td>
+                        <td className="py-2.5 text-center text-gray-500">__________</td>
+                        <td className="py-2.5 text-center text-gray-500">☐</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between items-end">
+                  <div>
+                    <div className="text-sm text-gray-500">合计备餐量</div>
+                    <div className="text-2xl font-bold text-primary-600">
+                      {localDishes.reduce((s, d) => s + d.finalAmount, 0)} 份
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-gray-400">
+                    打印时间：{new Date().toLocaleString("zh-CN")}
                   </div>
                 </div>
               </div>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 font-semibold">菜品</th>
-                    <th className="text-left py-2 font-semibold">档口</th>
-                    <th className="text-center py-2 font-semibold">备餐量</th>
-                    <th className="text-center py-2 font-semibold">责任人</th>
-                    <th className="text-center py-2 font-semibold">确认</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {localDishes.map(d => (
-                    <tr key={d.id} className="border-b border-gray-100">
-                      <td className="py-2.5 font-medium">{d.dishName}</td>
-                      <td className="py-2.5 text-gray-600">{d.stallName}</td>
-                      <td className="py-2.5 text-center font-bold text-lg">{d.finalAmount}</td>
-                      <td className="py-2.5 text-center text-gray-500">__________</td>
-                      <td className="py-2.5 text-center text-gray-500">☐</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between">
-                <div>
-                  <div className="text-sm text-gray-500">合计备餐量</div>
-                  <div className="text-2xl font-bold text-primary-600">
-                    {localDishes.reduce((s, d) => s + d.finalAmount, 0)} 份
-                  </div>
-                </div>
+              <div className="mt-6 flex items-center gap-3 justify-end print:hidden">
+                <button
+                  onClick={() => setShowPrintDialog(false)}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium"
+                >
+                  取消
+                </button>
                 <button
                   onClick={() => window.print()}
-                  className="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium"
+                  className="px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl text-sm font-medium flex items-center gap-1.5"
                 >
+                  <Printer className="w-4 h-4" />
                   打印备餐单
                 </button>
               </div>
             </div>
           </div>
+          <style>{`
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #print-area, #print-area * {
+                visibility: visible !important;
+              }
+              #print-area {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                padding: 30px !important;
+              }
+            }
+          `}</style>
         </>
       )}
     </div>

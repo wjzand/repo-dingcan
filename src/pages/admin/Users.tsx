@@ -25,6 +25,53 @@ export default function AdminUsers() {
   const [deptFilter, setDeptFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [showRoleModal, setShowRoleModal] = useState<string | null>(null);
+  const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
+  const [toast, setToast] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    employeeId: "",
+    phone: "",
+    email: "",
+    deptId: "",
+    role: "employee",
+    balance: 0,
+    subsidyBalance: 0,
+  });
+
+  const openEditUser = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setFormData({
+        name: user.name,
+        employeeId: user.employeeId,
+        phone: user.phone,
+        email: user.email,
+        deptId: user.deptId,
+        role: user.role,
+        balance: user.balance,
+        subsidyBalance: user.subsidyBalance,
+      });
+      setEditingUser(userId);
+      setShowModal(true);
+    }
+  };
+
+  const openAddUser = () => {
+    setFormData({
+      name: "",
+      employeeId: "",
+      phone: "",
+      email: "",
+      deptId: "",
+      role: "employee",
+      balance: 0,
+      subsidyBalance: 0,
+    });
+    setEditingUser(null);
+    setShowModal(true);
+  };
 
   const filteredUsers = useMemo(() => {
     return users.filter(
@@ -90,7 +137,7 @@ export default function AdminUsers() {
               导出
             </button>
             <button
-              onClick={() => setShowModal(true)}
+              onClick={openAddUser}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium transition-colors shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -219,13 +266,25 @@ export default function AdminUsers() {
                     </td>
                     <td className="py-3 px-2 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary-500 transition-colors">
+                        <button
+                          onClick={() => openEditUser(u.id)}
+                          className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-primary-500 transition-colors"
+                          title="编辑"
+                        >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-warning-500 transition-colors">
+                        <button
+                          onClick={() => setShowRoleModal(u.id)}
+                          className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-warning-500 transition-colors"
+                          title="权限设置"
+                        >
                           <Shield className="w-3.5 h-3.5" />
                         </button>
-                        <button className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                        <button
+                          onClick={() => setShowActionMenu(showActionMenu === u.id ? null : u.id)}
+                          className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+                          title="更多操作"
+                        >
                           <MoreHorizontal className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -245,7 +304,7 @@ export default function AdminUsers() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800">新增员工</h3>
+              <h3 className="text-lg font-bold text-gray-800">{editingUser ? "编辑员工" : "新增员工"}</h3>
               <button
                 onClick={() => setShowModal(false)}
                 className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 text-xl"
@@ -258,6 +317,8 @@ export default function AdminUsers() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">姓名 *</label>
                   <input
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="请输入姓名"
                     className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 focus:bg-white transition-all"
                   />
@@ -265,6 +326,8 @@ export default function AdminUsers() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">工号 *</label>
                   <input
+                    value={formData.employeeId}
+                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                     placeholder="系统自动生成"
                     className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 focus:bg-white transition-all"
                   />
@@ -272,6 +335,8 @@ export default function AdminUsers() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">手机号 *</label>
                   <input
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="请输入手机号"
                     className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 focus:bg-white transition-all"
                   />
@@ -279,24 +344,34 @@ export default function AdminUsers() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">邮箱</label>
                   <input
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="请输入邮箱"
                     className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 focus:bg-white transition-all"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">所属部门 *</label>
-                  <select className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
-                    <option>请选择部门</option>
+                  <select
+                    value={formData.deptId}
+                    onChange={(e) => setFormData({ ...formData, deptId: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                  >
+                    <option value="">请选择部门</option>
                     {DEPARTMENTS.map((d) => (
-                      <option key={d.id}>{d.name}</option>
+                      <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">角色 *</label>
-                  <select className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                  >
                     {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                      <option key={k}>{v}</option>
+                      <option key={k} value={k}>{v}</option>
                     ))}
                   </select>
                 </div>
@@ -306,11 +381,15 @@ export default function AdminUsers() {
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     type="number"
+                    value={formData.balance}
+                    onChange={(e) => setFormData({ ...formData, balance: Number(e.target.value) })}
                     placeholder="自费余额（元）"
                     className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 focus:bg-white transition-all"
                   />
                   <input
                     type="number"
+                    value={formData.subsidyBalance}
+                    onChange={(e) => setFormData({ ...formData, subsidyBalance: Number(e.target.value) })}
                     placeholder="餐补余额（元）"
                     className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 focus:bg-white transition-all"
                   />

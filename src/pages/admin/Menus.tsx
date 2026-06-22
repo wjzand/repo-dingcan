@@ -15,6 +15,7 @@ import {
   Download,
   Package,
   Brain,
+  AlertTriangle,
 } from "lucide-react";
 import { useAppStore } from "@/store";
 import { STALLS, MEAL_PREP_SUGGESTIONS } from "@/data/mockData";
@@ -32,6 +33,10 @@ export default function AdminMenus() {
   const [selectedStall, setSelectedStall] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editingMenuId, setEditingMenuId] = useState<string | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [menuActionMenu, setMenuActionMenu] = useState<string | null>(null);
 
   const filteredMenus = useMemo(() => {
     return menuItems.filter(
@@ -385,19 +390,44 @@ export default function AdminMenus() {
                       </td>
                       <td className="px-5 py-3.5 text-center">
                         <div className="flex items-center justify-center gap-0.5">
-                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition-colors">
+                          <button
+                            onClick={() => setShowPreviewModal(m.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition-colors"
+                            title="预览"
+                          >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors">
+                          <button
+                            onClick={() => {
+                              setEditingMenuId(m.id);
+                              setShowEditModal(true);
+                            }}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                            title="编辑"
+                          >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-warning-500 hover:bg-warning-50 transition-colors">
+                          <button
+                            onClick={() => {
+                              // 复制功能
+                            }}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-warning-500 hover:bg-warning-50 transition-colors"
+                            title="复制"
+                          >
                             <Copy className="w-4 h-4" />
                           </button>
-                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-danger-500 hover:bg-danger-50 transition-colors">
+                          <button
+                            onClick={() => setShowDeleteConfirm(m.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-danger-500 hover:bg-danger-50 transition-colors"
+                            title="删除"
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
-                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                          <button
+                            onClick={() => setMenuActionMenu(menuActionMenu === m.id ? null : m.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                            title="更多"
+                          >
                             <MoreHorizontal className="w-4 h-4" />
                           </button>
                         </div>
@@ -461,9 +491,12 @@ export default function AdminMenus() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800">添加菜品到菜单</h3>
+              <h3 className="text-lg font-bold text-gray-800">{editingMenuId ? "编辑菜品" : "添加菜品到菜单"}</h3>
               <button
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingMenuId(null);
+                }}
                 className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400"
               >
                 ×
@@ -529,7 +562,10 @@ export default function AdminMenus() {
             </div>
             <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-2">
               <button
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingMenuId(null);
+                }}
                 className="px-5 py-2.5 text-sm rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
               >
                 取消
@@ -537,6 +573,109 @@ export default function AdminMenus() {
               <button className="px-5 py-2.5 text-sm rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-medium flex items-center gap-1.5 transition-colors">
                 <Save className="w-4 h-4" />
                 保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 预览菜品弹窗 */}
+      {showPreviewModal && (() => {
+        const menu = menuItems.find(m => m.id === showPreviewModal);
+        if (!menu) return null;
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" onClick={() => setShowPreviewModal(null)}>
+            <div
+              className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative">
+                <img
+                  src={menu.dish.image}
+                  alt={menu.dish.name}
+                  className="w-full aspect-video object-cover"
+                />
+                <button
+                  onClick={() => setShowPreviewModal(null)}
+                  className="absolute top-3 right-3 w-8 h-8 bg-black/30 hover:bg-black/50 rounded-full flex items-center justify-center text-white"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="p-5">
+                <div className="flex items-start justify-between">
+                  <h3 className="text-xl font-bold text-gray-800">{menu.dish.name}</h3>
+                  <div className="text-right">
+                    <div className="text-2xl font-black text-primary-600">¥{menu.dish.price}</div>
+                    <div className="text-[10px] text-primary-400">补贴后 ¥{menu.subsidyPrice || Math.max(1, menu.dish.price - 10)}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  {menu.dish.tags.map(t => (
+                    <span
+                      key={t.id}
+                      className="text-[10px] px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: t.color }}
+                    >
+                      {t.name}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500 mt-4 leading-relaxed">
+                  精选{menu.dish.category}，{menu.dish.ingredients}
+                </p>
+                <div className="mt-4 p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">分类</span>
+                    <span className="text-gray-700">{menu.dish.category}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-2">
+                    <span className="text-gray-500">主要食材</span>
+                    <span className="text-gray-700">{menu.dish.ingredients}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-2">
+                    <span className="text-gray-500">供应数量</span>
+                    <span className="text-gray-700 font-medium">{menu.bookedCount} / {menu.supplyLimit}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-2">
+                    <span className="text-gray-500">预订截止</span>
+                    <span className="text-gray-700">{menu.deadline.slice(11, 16)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 删除确认弹窗 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" onClick={() => setShowDeleteConfirm(null)}>
+          <div
+            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 mx-auto bg-danger-50 rounded-full flex items-center justify-center mb-4">
+              <AlertTriangle className="w-7 h-7 text-danger-500" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800 text-center">确认删除</h3>
+            <p className="text-sm text-gray-500 text-center mt-2">
+              删除后将无法恢复，确定要从菜单中移除这道菜品吗？
+            </p>
+            <div className="flex items-center gap-3 mt-6">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-danger-500 hover:bg-danger-600 text-white text-sm font-medium transition-colors"
+              >
+                确认删除
               </button>
             </div>
           </div>

@@ -27,6 +27,96 @@ export default function AdminReports() {
   const orders = useAppStore((s) => s.orders);
   const [period, setPeriod] = useState<"day" | "week" | "month">("week");
   const [reportType, setReportType] = useState<"revenue" | "attendance" | "cost" | "user" | "prep">("revenue");
+  const [exportToast, setExportToast] = useState("");
+
+  const handleExportExcel = () => {
+    let headers: string[] = [];
+    let rows: (string | number)[][] = [];
+
+    if (reportType === "revenue") {
+      headers = ["日期", "营业收入(元)", "补贴金额(元)", "自费金额(元)", "订单数", "客单价(元)"];
+      rows = DAILY_STATS.map(d => [
+        d.date,
+        d.revenue.toFixed(2),
+        (d.revenue * 0.35).toFixed(2),
+        (d.revenue * 0.65).toFixed(2),
+        Math.floor(d.revenue / 20),
+        (d.revenue / Math.floor(d.revenue / 20)).toFixed(2),
+      ]);
+    } else if (reportType === "attendance") {
+      headers = ["餐别", "预订人数", "实际取餐", "取餐率", "预订率"];
+      const meals = [
+        { name: "早餐", book: 280, pickup: 265 },
+        { name: "午餐", book: 520, pickup: 498 },
+        { name: "晚餐", book: 350, pickup: 320 },
+        { name: "夜宵", book: 80, pickup: 72 },
+      ];
+      rows = meals.map(m => [
+        m.name,
+        m.book,
+        m.pickup,
+        `${((m.pickup / m.book) * 100).toFixed(1)}%`,
+        `${((m.book / 800) * 100).toFixed(1)}%`,
+      ]);
+    } else if (reportType === "cost") {
+      headers = ["项目", "金额(元)", "占比"];
+      const costs = [
+        { name: "食材成本", amount: 28500, pct: "45%" },
+        { name: "人工成本", amount: 22000, pct: "35%" },
+        { name: "水电能耗", amount: 4500, pct: "7%" },
+        { name: "设备折旧", amount: 3200, pct: "5%" },
+        { name: "其他费用", amount: 5000, pct: "8%" },
+      ];
+      rows = costs.map(c => [c.name, c.amount, c.pct]);
+    } else if (reportType === "user") {
+      headers = ["排名", "菜品名称", "销量", "销售额(元)", "占比"];
+      rows = DISH_SALES_RANK.map((d, i) => [
+        i + 1,
+        d.dishName,
+        d.quantity,
+        d.revenue,
+        `${(d.quantity / 500).toFixed(1)}%`,
+      ]);
+    } else if (reportType === "prep") {
+      headers = ["菜品名称", "备餐量", "实际取餐", "偏差", "偏差率", "原因"];
+      MEAL_PREP_REVIEWS.forEach(r => {
+        r.dishReviews.forEach(d => {
+          rows.push([
+            d.dishName,
+            d.preppedAmount,
+            d.pickedUpAmount,
+            d.diff > 0 ? `+${d.diff}` : d.diff,
+            `${d.diffPercent > 0 ? "+" : ""}${d.diffPercent}%`,
+            d.reason,
+          ]);
+        });
+      });
+    }
+
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const typeNames: any = {
+      revenue: "营业收入",
+      attendance: "就餐率分析",
+      cost: "成本核算",
+      user: "消费统计",
+      prep: "备餐准确率",
+    };
+    a.download = `${typeNames[reportType]}报表_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportToast("Excel文件已导出");
+    setTimeout(() => setExportToast(""), 2000);
+  };
+
+  const handleDownloadPDF = () => {
+    window.print();
+    setExportToast("打印预览已打开，可选择保存为PDF");
+    setTimeout(() => setExportToast(""), 2500);
+  };
 
   const revenueStats = useMemo(() => {
     const total = orders.reduce((s, o) => s + o.totalAmount, 0);
@@ -49,11 +139,20 @@ export default function AdminReports() {
             统计报表中心
           </h2>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium transition-colors shadow-sm">
+            {exportToast && (
+              <span className="text-xs text-success-600 font-medium animate-pulse">{exportToast}</span>
+            )}
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium transition-colors shadow-sm"
+            >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               导出Excel
             </button>
-            <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-medium transition-colors">
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-medium transition-colors"
+            >
               <Download className="w-3.5 h-3.5" />
               下载PDF
             </button>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Gift,
   Plus,
@@ -13,12 +14,14 @@ import {
   DollarSign,
   Clock,
   FileText,
+  Edit2,
 } from "lucide-react";
 import { useAppStore } from "@/store";
 import { SUBSIDY_RULES, DEPARTMENTS, USERS } from "@/data/mockData";
 import { SUBSIDY_RULE_TYPE_LABELS } from "@/types";
 
 export default function AdminSubsidy() {
+  const navigate = useNavigate();
   const subsidyRecords = useAppStore((s) => s.subsidyRecords);
   const users = useAppStore((s) => s.users);
   const grantSubsidy = useAppStore((s) => s.grantSubsidy);
@@ -26,6 +29,7 @@ export default function AdminSubsidy() {
   const [activeTab, setActiveTab] = useState<"rules" | "grant" | "records">("rules");
   const [search, setSearch] = useState("");
   const [showGrantModal, setShowGrantModal] = useState(false);
+  const [showEditRuleModal, setShowEditRuleModal] = useState<string | null>(null);
   const [grantForm, setGrantForm] = useState({
     type: "per_meal",
     amount: 15,
@@ -33,6 +37,25 @@ export default function AdminSubsidy() {
     userId: "",
     reason: "",
   });
+  const [editRuleForm, setEditRuleForm] = useState({
+    name: "",
+    amount: 0,
+    description: "",
+    isActive: true,
+  });
+
+  const openEditRule = (ruleId: string) => {
+    const rule = SUBSIDY_RULES.find(r => r.id === ruleId);
+    if (rule) {
+      setEditRuleForm({
+        name: rule.name,
+        amount: rule.amount,
+        description: rule.description,
+        isActive: rule.isActive,
+      });
+      setShowEditRuleModal(ruleId);
+    }
+  };
 
   const employees = useMemo(() => users.filter((u) => u.role === "employee"), [users]);
 
@@ -178,7 +201,11 @@ export default function AdminSubsidy() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="px-3 py-1.5 rounded-lg text-[11px] bg-gray-50 hover:bg-gray-100 text-gray-600 font-medium transition-colors">
+                    <button
+                      onClick={() => openEditRule(r.id)}
+                      className="px-3 py-1.5 rounded-lg text-[11px] bg-gray-50 hover:bg-gray-100 text-gray-600 font-medium transition-colors flex items-center gap-1"
+                    >
+                      <Edit2 className="w-3 h-3" />
                       编辑
                     </button>
                     <ChevronRight className="w-4 h-4 text-gray-300" />
@@ -429,6 +456,79 @@ export default function AdminSubsidy() {
                 className="px-5 py-2.5 rounded-xl text-sm bg-primary-500 hover:bg-primary-600 text-white font-medium transition-colors shadow-sm"
               >
                 确认发放
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditRuleModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6" onClick={() => setShowEditRuleModal(null)}>
+          <div
+            className="bg-white rounded-3xl w-full max-w-md shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-800">编辑补贴规则</h3>
+              <p className="text-[11px] text-gray-400 mt-1">
+                {(() => {
+                  const rule = SUBSIDY_RULES.find(r => r.id === showEditRuleModal);
+                  return rule ? SUBSIDY_RULE_TYPE_LABELS[rule.type] : "";
+                })()}
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">规则名称</label>
+                <input
+                  value={editRuleForm.name}
+                  onChange={(e) => setEditRuleForm({ ...editRuleForm, name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">补贴金额（元）</label>
+                <input
+                  type="number"
+                  value={editRuleForm.amount}
+                  onChange={(e) => setEditRuleForm({ ...editRuleForm, amount: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">规则描述</label>
+                <textarea
+                  value={editRuleForm.description}
+                  onChange={(e) => setEditRuleForm({ ...editRuleForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div>
+                  <div className="text-sm font-medium text-gray-700">启用状态</div>
+                  <div className="text-[11px] text-gray-400">停用后该规则将不再自动发放</div>
+                </div>
+                <button
+                  onClick={() => setEditRuleForm({ ...editRuleForm, isActive: !editRuleForm.isActive })}
+                  className={`w-12 h-6 rounded-full transition-colors ${editRuleForm.isActive ? "bg-primary-500" : "bg-gray-300"}`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${editRuleForm.isActive ? "translate-x-6" : "translate-x-0.5"}`} />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-100 flex items-center justify-end gap-3 bg-gray-50/50">
+              <button
+                onClick={() => setShowEditRuleModal(null)}
+                className="px-5 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-100 font-medium transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => setShowEditRuleModal(null)}
+                className="px-5 py-2.5 rounded-xl text-sm bg-primary-500 hover:bg-primary-600 text-white font-medium transition-colors shadow-sm"
+              >
+                保存
               </button>
             </div>
           </div>
