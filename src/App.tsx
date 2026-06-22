@@ -17,6 +17,7 @@ import AdminSubsidy from "@/pages/admin/Subsidy";
 import AdminUsers from "@/pages/admin/Users";
 import AdminDepartments from "@/pages/admin/Departments";
 import AdminSettings from "@/pages/admin/Settings";
+import AdminMealPrep from "@/pages/admin/MealPrep";
 
 function RequireAuth({ children, requireAdmin = false }: { children: JSX.Element; requireAdmin?: boolean }) {
   const currentUser = useAppStore((s) => s.currentUser);
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="departments" element={<AdminDepartments />} />
           <Route path="settings" element={<AdminSettings />} />
+          <Route path="meal-prep" element={<AdminMealPrep />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

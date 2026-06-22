@@ -11,14 +11,22 @@ import {
   PieChart,
   ArrowUpRight,
   ArrowDownRight,
+  Brain,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Target,
+  TrendingDown,
+  Lightbulb,
+  UtensilsCrossed,
 } from "lucide-react";
 import { useAppStore } from "@/store";
-import { DAILY_STATS, DISH_SALES_RANK, STALL_STATS, DEPARTMENTS } from "@/data/mockData";
+import { DAILY_STATS, DISH_SALES_RANK, STALL_STATS, DEPARTMENTS, MEAL_PREP_REVIEWS } from "@/data/mockData";
 
 export default function AdminReports() {
   const orders = useAppStore((s) => s.orders);
   const [period, setPeriod] = useState<"day" | "week" | "month">("week");
-  const [reportType, setReportType] = useState<"revenue" | "attendance" | "cost" | "user">("revenue");
+  const [reportType, setReportType] = useState<"revenue" | "attendance" | "cost" | "user" | "prep">("revenue");
 
   const revenueStats = useMemo(() => {
     const total = orders.reduce((s, o) => s + o.totalAmount, 0);
@@ -58,6 +66,7 @@ export default function AdminReports() {
             { id: "attendance", label: "就餐率分析", icon: Users },
             { id: "cost", label: "成本核算", icon: PieChart },
             { id: "user", label: "消费统计", icon: TrendingUp },
+            { id: "prep", label: "备餐准确率", icon: Brain },
           ].map((t) => (
             <button
               key={t.id}
@@ -478,6 +487,153 @@ export default function AdminReports() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {reportType === "prep" && (
+        <div className="space-y-4">
+          {MEAL_PREP_REVIEWS.map(review => (
+            <div key={review.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-gray-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-gray-800">备餐准确率分析</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {review.date} · {review.mealType === "lunch" ? "午餐" : review.mealType === "dinner" ? "晚餐" : "早餐"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-[11px] text-gray-400">综合准确率</div>
+                      <div className={`text-2xl font-black ${
+                        review.accuracyScore >= 90 ? "text-success-500" :
+                        review.accuracyScore >= 75 ? "text-warning-500" : "text-danger-500"
+                      }`}>
+                        {review.accuracyScore}分
+                      </div>
+                    </div>
+                    <div className={`w-14 h-14 rounded-full border-4 ${
+                      review.accuracyScore >= 90 ? "border-success-400" :
+                      review.accuracyScore >= 75 ? "border-warning-400" : "border-danger-400"
+                    } flex items-center justify-center`}>
+                      <Target className={`w-6 h-6 ${
+                        review.accuracyScore >= 90 ? "text-success-500" :
+                        review.accuracyScore >= 75 ? "text-warning-500" : "text-danger-500"
+                      }`} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                    <UtensilsCrossed className="w-3.5 h-3.5" />
+                    总备餐量
+                  </div>
+                  <div className="text-2xl font-black text-gray-800">{review.totalPrepped}</div>
+                  <div className="text-[11px] text-gray-400">份</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    实际取餐
+                  </div>
+                  <div className="text-2xl font-black text-success-600">{review.totalPickedUp}</div>
+                  <div className="text-[11px] text-gray-400">取餐率 {((review.totalPickedUp / review.totalPrepped) * 100).toFixed(1)}%</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-danger-600">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      缺餐率
+                    </div>
+                    <span className="font-bold text-danger-600">{review.shortageRate}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-danger-400 rounded-full" style={{ width: `${Math.min(100, review.shortageRate * 4)}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between text-xs mt-3">
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <XCircle className="w-3.5 h-3.5" />
+                      剩餐率
+                    </div>
+                    <span className="font-bold text-gray-600">{review.surplusRate}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-gray-400 rounded-full" style={{ width: `${Math.min(100, review.surplusRate * 2)}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 border-t border-gray-50">
+                <h4 className="text-sm font-bold text-gray-800 mb-3">菜品备餐偏差明细</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-gray-500 text-xs border-b border-gray-100">
+                        <th className="text-left py-2.5 px-3 font-medium">菜品</th>
+                        <th className="text-right py-2.5 px-3 font-medium">备餐量</th>
+                        <th className="text-right py-2.5 px-3 font-medium">实际取餐</th>
+                        <th className="text-right py-2.5 px-3 font-medium">偏差</th>
+                        <th className="text-right py-2.5 px-3 font-medium">偏差率</th>
+                        <th className="text-left py-2.5 px-3 font-medium">原因分析</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {review.dishReviews.map((dr, i) => (
+                        <tr key={dr.dishId} className="border-b border-gray-50 hover:bg-gray-50">
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2">
+                              {dr.diffPercent > 15 && <TrendingUp className="w-3.5 h-3.5 text-danger-500" />}
+                              {dr.diffPercent < -15 && <TrendingDown className="w-3.5 h-3.5 text-gray-500" />}
+                              <span className="font-medium text-gray-800">{dr.dishName}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-right text-gray-600">{dr.preppedAmount}</td>
+                          <td className="py-3 px-3 text-right text-gray-800 font-medium">{dr.pickedUpAmount}</td>
+                          <td className={`py-3 px-3 text-right font-bold ${
+                            dr.diff > 0 ? "text-danger-600" : dr.diff < 0 ? "text-gray-500" : "text-success-600"
+                          }`}>
+                            {dr.diff > 0 ? `+${dr.diff}` : dr.diff}
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              dr.diffPercent > 15 ? "bg-danger-50 text-danger-600" :
+                              dr.diffPercent < -15 ? "bg-gray-100 text-gray-600" :
+                              "bg-success-50 text-success-600"
+                            }`}>
+                              {dr.diffPercent > 0 ? `+${dr.diffPercent}%` : `${dr.diffPercent}%`}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-xs text-gray-500">{dr.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="p-5 border-t border-gray-50 bg-primary-50/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Lightbulb className="w-4 h-4 text-primary-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-800 mb-2">模型调优建议</h4>
+                    <ul className="space-y-1.5">
+                      {review.suggestions.map((s, i) => (
+                        <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
+                          <span className="text-primary-500 mt-0.5">•</span>
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

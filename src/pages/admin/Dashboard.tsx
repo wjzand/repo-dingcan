@@ -14,10 +14,15 @@ import {
   ShoppingCart,
   Package,
   Flame,
+  Brain,
+  ChevronRight,
+  Sun,
+  Cloud,
+  CloudRain,
 } from "lucide-react";
 import { useAppStore } from "@/store";
-import { DAILY_STATS, DISH_SALES_RANK, STALL_STATS, STALLS } from "@/data/mockData";
-import { MEAL_TYPE_LABELS, type MealType } from "@/types";
+import { DAILY_STATS, DISH_SALES_RANK, STALL_STATS, STALLS, MEAL_PREP_SUGGESTIONS } from "@/data/mockData";
+import { MEAL_TYPE_LABELS, RISK_LABELS, RISK_COLORS, WEATHER_LABELS, type MealType } from "@/types";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -52,8 +57,60 @@ export default function AdminDashboard() {
   const maxRankQty = Math.max(...DISH_SALES_RANK.map(d => d.quantity), 1);
   const maxStallRevenue = Math.max(...STALL_STATS.map(s => s.revenue), 1);
 
+  const todayPrep = MEAL_PREP_SUGGESTIONS.filter(s => s.date === todayStr);
+  const highestRiskPrep = todayPrep.reduce((max, curr) => {
+    const riskOrder = { warning: 2, attention: 1, normal: 0 };
+    return riskOrder[curr.overallRisk] > riskOrder[max.overallRisk] ? curr : max;
+  }, todayPrep[0]);
+
   return (
     <div className="space-y-6">
+      {/* 今日备餐参谋卡片 */}
+      {todayPrep.length > 0 && (
+        <div
+          className="bg-gradient-to-r from-primary-500 to-blue-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all cursor-pointer group"
+          onClick={() => navigate(`/admin/meal-prep?date=${todayStr}&meal=lunch`)}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <Brain className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">今日备餐参谋</h3>
+                <p className="text-sm text-white/80 mt-0.5">
+                  已生成 {todayPrep.length} 个餐别的备餐建议
+                  {highestRiskPrep && (
+                    <span className="ml-2">· 午餐{RISK_LABELS[highestRiskPrep.overallRisk]}</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {todayPrep.slice(0, 3).map(p => (
+                <div key={p.mealType} className="text-right bg-white/10 rounded-lg px-3 py-2">
+                  <div className="text-[10px] text-white/70">{MEAL_TYPE_LABELS[p.mealType]}</div>
+                  <div className="text-sm font-bold">{p.suggestedTotalServings}份</div>
+                  <div className={`w-2 h-2 rounded-full ${RISK_COLORS[p.overallRisk]} float-right mt-1`} />
+                </div>
+              ))}
+              <ChevronRight className="w-5 h-5 text-white/60 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+          {highestRiskPrep && highestRiskPrep.overallRisk !== "normal" && (
+            <div className="mt-4 flex items-center gap-2 text-sm bg-white/10 rounded-lg px-4 py-2.5">
+              <AlertTriangle className="w-4 h-4" />
+              <span>
+                {highestRiskPrep && WEATHER_LABELS[highestRiskPrep.weather || "cloudy"]}
+                {highestRiskPrep && highestRiskPrep.temperature && ` ${highestRiskPrep.temperature}°C · `}
+                建议优先处理{MEAL_TYPE_LABELS[highestRiskPrep.mealType]}备餐，
+                <span className="font-semibold underline">共{highestRiskPrep.dishes.filter(d => d.riskLevel !== "normal").length}道菜品需关注</span>
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 顶部统计卡片 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[

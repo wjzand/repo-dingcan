@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -15,6 +16,8 @@ import {
   Eye,
   X as XIcon,
   Package,
+  Brain,
+  List,
 } from "lucide-react";
 import { useAppStore } from "@/store";
 import {
@@ -23,7 +26,7 @@ import {
   type MealType,
   type OrderStatus,
 } from "@/types";
-import { STALLS } from "@/data/mockData";
+import { STALLS, MEAL_PREP_SUGGESTIONS } from "@/data/mockData";
 
 const statusColors: Record<OrderStatus, string> = {
   booked: "bg-warning-50 text-warning-600 border-warning-200",
@@ -33,6 +36,7 @@ const statusColors: Record<OrderStatus, string> = {
 };
 
 export default function AdminOrders() {
+  const navigate = useNavigate();
   const getFilteredOrders = useAppStore((s) => s.getFilteredOrders);
   const markOrderPickedUp = useAppStore((s) => s.markOrderPickedUp);
   const markOrderNoShow = useAppStore((s) => s.markOrderNoShow);
@@ -47,6 +51,7 @@ export default function AdminOrders() {
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDetail, setShowDetail] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"orders" | "prep">("orders");
 
   const orders = useMemo(
     () =>
@@ -104,6 +109,35 @@ export default function AdminOrders() {
 
   return (
     <div className="space-y-5">
+      {/* 标签切换 */}
+      <div className="bg-white rounded-2xl p-1 shadow-sm inline-flex">
+        <button
+          onClick={() => setViewMode("orders")}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition-all ${
+            viewMode === "orders"
+              ? "bg-primary-500 text-white shadow-sm"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <List className="w-4 h-4" />
+          订单汇总
+        </button>
+        <button
+          onClick={() => navigate(`/admin/meal-prep?date=${filters.date}&meal=${filters.mealType || "lunch"}`)}
+          className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition-all ${
+            viewMode === "prep"
+              ? "bg-primary-500 text-white shadow-sm"
+              : "text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <Brain className="w-4 h-4" />
+          备餐建议
+          {MEAL_PREP_SUGGESTIONS.some(s => s.date === filters.date && s.overallRisk === "warning") && (
+            <span className="w-2 h-2 bg-danger-500 rounded-full" />
+          )}
+        </button>
+      </div>
+
       {/* 筛选区 */}
       <div className="bg-white rounded-2xl p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">

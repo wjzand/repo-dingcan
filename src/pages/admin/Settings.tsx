@@ -17,7 +17,19 @@ import {
   DollarSign,
   AlertTriangle,
   Palette,
+  Brain,
+  Sun,
+  Cloud,
+  CloudRain,
+  Snowflake,
+  CalendarDays,
+  Plus,
+  Trash2,
+  Thermometer,
+  Info,
 } from "lucide-react";
+import { WEATHER_CONFIG, SEASONAL_CONFIG, SPECIAL_EVENTS } from "@/data/mockData";
+import { WEATHER_LABELS, type WeatherType, type HolidayImpact } from "@/types";
 
 export default function AdminSettings() {
   const [activeSection, setActiveSection] = useState("general");
@@ -56,6 +68,54 @@ export default function AdminSettings() {
     language: "zh-CN",
   });
 
+  const [weatherFactors, setWeatherFactors] = useState(WEATHER_CONFIG);
+  const [seasonalFactors, setSeasonalFactors] = useState(SEASONAL_CONFIG);
+  const [specialEvents, setSpecialEvents] = useState(SPECIAL_EVENTS);
+  const [showAddEvent, setShowAddEvent] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    date: new Date().toISOString().split("T")[0],
+    name: "",
+    impact: "slight_reduce" as HolidayImpact,
+    impactPercent: -10,
+    description: "",
+  });
+
+  const weatherIcons: Record<WeatherType, typeof Sun> = {
+    sunny: Sun,
+    cloudy: Cloud,
+    rainy: CloudRain,
+    snowy: Snowflake,
+    extreme: AlertTriangle,
+  };
+
+  const impactLabels: Record<HolidayImpact, string> = {
+    normal: "正常",
+    increase: "大幅增加",
+    slight_reduce: "小幅减少",
+    heavy_reduce: "大幅减少",
+  };
+
+  const addEvent = () => {
+    if (!newEvent.name.trim()) return;
+    const event = {
+      id: `evt-${Date.now()}`,
+      ...newEvent,
+    };
+    setSpecialEvents([...specialEvents, event]);
+    setNewEvent({
+      date: new Date().toISOString().split("T")[0],
+      name: "",
+      impact: "slight_reduce",
+      impactPercent: -10,
+      description: "",
+    });
+    setShowAddEvent(false);
+  };
+
+  const removeEvent = (id: string) => {
+    setSpecialEvents(specialEvents.filter(e => e.id !== id));
+  };
+
   const toggle = (key: string) => {
     setSettings((s) => ({ ...s, [key]: !(s as any)[key] }));
   };
@@ -69,6 +129,7 @@ export default function AdminSettings() {
     { id: "scan", label: "扫码核销", icon: ScanLine },
     { id: "print", label: "打印模板", icon: Printer },
     { id: "security", label: "安全与权限", icon: Shield },
+    { id: "mealprep", label: "智能备餐", icon: Brain },
     { id: "display", label: "显示设置", icon: Palette },
   ];
 
@@ -734,6 +795,234 @@ export default function AdminSettings() {
                   <option value="en-US">English</option>
                   <option value="ja-JP">日本語</option>
                 </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "mealprep" && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-primary-500" />
+                    智能备餐外部因子配置
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mt-1">配置天气、节假日、特殊日程等外部因素对就餐预测的影响系数</p>
+                </div>
+                <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-xs font-medium transition-colors shadow-sm">
+                  <Save className="w-3.5 h-3.5" />
+                  保存配置
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <Thermometer className="w-4 h-4 text-blue-500" />
+                  天气影响规则
+                  <span className="text-[10px] font-normal text-gray-400 ml-1">
+                    <Info className="w-3 h-3 inline" /> 系数为正值增加预测，负值减少预测
+                  </span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {weatherFactors.map((wf) => {
+                    const WeatherIcon = weatherIcons[wf.type];
+                    return (
+                      <div key={wf.type} className="p-4 border border-gray-100 rounded-xl">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                            <WeatherIcon className="w-5 h-5 text-blue-500" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-800">{WEATHER_LABELS[wf.type]}</div>
+                            <div className="text-[10px] text-gray-400">{wf.description}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">影响系数</span>
+                          <input
+                            type="number"
+                            value={wf.impact}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setWeatherFactors(weatherFactors.map(w =>
+                                w.type === wf.type ? { ...w, impact: val } : w
+                              ));
+                            }}
+                            className="w-20 px-3 py-1.5 bg-gray-50 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                          <span className="text-xs text-gray-400">%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <Snowflake className="w-4 h-4 text-cyan-500" />
+                  季节性系数
+                </h4>
+                <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-12 gap-2">
+                  {["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"].map((month, idx) => {
+                    const factor = seasonalFactors.find(s => s.month === idx + 1);
+                    return (
+                      <div key={idx} className="p-3 border border-gray-100 rounded-xl text-center">
+                        <div className="text-xs font-medium text-gray-600 mb-2">{month}</div>
+                        <input
+                          type="number"
+                          value={factor?.impact || 0}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            const existing = seasonalFactors.find(s => s.month === idx + 1);
+                            if (existing) {
+                              setSeasonalFactors(seasonalFactors.map(s =>
+                                s.month === idx + 1 ? { ...s, impact: val } : s
+                              ));
+                            } else if (val !== 0) {
+                              setSeasonalFactors([...seasonalFactors, { month: idx + 1, impact: val, description: `${month}季节性调整` }]);
+                            }
+                          }}
+                          className="w-full px-2 py-1.5 bg-gray-50 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                        />
+                        <div className="text-[9px] text-gray-400 mt-1">%</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-orange-500" />
+                    特殊日程标记
+                  </h4>
+                  <button
+                    onClick={() => setShowAddEvent(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 text-xs font-medium hover:bg-orange-100 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    添加日程
+                  </button>
+                </div>
+
+                {showAddEvent && (
+                  <div className="mb-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">日期</label>
+                        <input
+                          type="date"
+                          value={newEvent.date}
+                          onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                          className="w-full px-3 py-2 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">事件名称</label>
+                        <input
+                          type="text"
+                          value={newEvent.name}
+                          onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
+                          placeholder="如：全员大会"
+                          className="w-full px-3 py-2 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">就餐影响</label>
+                        <select
+                          value={newEvent.impact}
+                          onChange={(e) => {
+                            const impact = e.target.value as HolidayImpact;
+                            const defaultPercent = impact === "increase" ? 15 : impact === "slight_reduce" ? -10 : -30;
+                            setNewEvent({ ...newEvent, impact, impactPercent: defaultPercent });
+                          }}
+                          className="w-full px-3 py-2 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                        >
+                          <option value="increase">大幅增加</option>
+                          <option value="slight_reduce">小幅减少</option>
+                          <option value="heavy_reduce">大幅减少</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">影响系数</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={newEvent.impactPercent}
+                            onChange={(e) => setNewEvent({ ...newEvent, impactPercent: parseInt(e.target.value) || 0 })}
+                            className="w-full px-3 py-2 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                          />
+                          <span className="text-xs text-gray-400">%</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">备注说明</label>
+                      <input
+                        type="text"
+                        value={newEvent.description}
+                        onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                        placeholder="如：全员大会后员工就餐人数增加"
+                        className="w-full px-3 py-2 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 justify-end">
+                      <button
+                        onClick={() => setShowAddEvent(false)}
+                        className="px-4 py-2 rounded-lg text-xs text-gray-600 hover:bg-gray-100 font-medium"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={addEvent}
+                        className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium"
+                      >
+                        添加
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {specialEvents.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400 text-sm">
+                      暂无特殊日程标记
+                    </div>
+                  ) : (
+                    specialEvents.map((evt) => (
+                      <div key={evt.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div className={`w-2 h-2 rounded-full ${
+                          evt.impact === "increase" ? "bg-success-500" :
+                          evt.impact === "slight_reduce" ? "bg-warning-500" : "bg-danger-500"
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-800">{evt.name}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              evt.impact === "increase" ? "bg-success-50 text-success-600" :
+                              evt.impact === "slight_reduce" ? "bg-warning-50 text-warning-600" : "bg-danger-50 text-danger-600"
+                            }`}>
+                              {evt.impactPercent > 0 ? `+${evt.impactPercent}%` : `${evt.impactPercent}%`}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-gray-400 mt-0.5">
+                            {evt.date} · {evt.description || impactLabels[evt.impact]}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeEvent(evt.id)}
+                          className="p-1.5 text-gray-400 hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>

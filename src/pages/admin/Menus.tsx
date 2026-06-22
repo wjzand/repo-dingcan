@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   CalendarDays,
@@ -13,12 +14,14 @@ import {
   Eye,
   Download,
   Package,
+  Brain,
 } from "lucide-react";
 import { useAppStore } from "@/store";
-import { STALLS } from "@/data/mockData";
-import { MEAL_TYPE_LABELS, type MealType } from "@/types";
+import { STALLS, MEAL_PREP_SUGGESTIONS } from "@/data/mockData";
+import { MEAL_TYPE_LABELS, RISK_COLORS, type MealType } from "@/types";
 
 export default function AdminMenus() {
+  const navigate = useNavigate();
   const menuItems = useAppStore((s) => s.menuItems);
   const comboItems = useAppStore((s) => s.comboItems);
   const dishes = useAppStore((s) => s.dishes);
@@ -141,20 +144,38 @@ export default function AdminMenus() {
         {/* 餐别 + 档口筛选 */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-xl">
-            {(["breakfast", "lunch", "dinner", "supper"] as MealType[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => setSelectedMeal(m)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  selectedMeal === m
-                    ? "bg-white text-primary-600 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {MEAL_TYPE_LABELS[m]}
-              </button>
-            ))}
+            {(["breakfast", "lunch", "dinner", "supper"] as MealType[]).map((m) => {
+              const prep = MEAL_PREP_SUGGESTIONS.find(s => s.date === selectedDate && s.mealType === m);
+              return (
+                <div key={m} className="flex items-center gap-1">
+                  <button
+                    onClick={() => setSelectedMeal(m)}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      selectedMeal === m
+                        ? "bg-white text-primary-600 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {MEAL_TYPE_LABELS[m]}
+                  </button>
+                  {prep && prep.overallRisk !== "normal" && (
+                    <div
+                      className={`w-2 h-2 rounded-full ${RISK_COLORS[prep.overallRisk]}`}
+                      title={`${MEAL_TYPE_LABELS[m]}备餐${prep.overallRisk === "warning" ? "预警" : "需要注意"}`}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
+
+          <button
+            onClick={() => navigate(`/admin/meal-prep?date=${selectedDate}&meal=${selectedMeal}`)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary-50 text-primary-600 rounded-xl text-xs font-medium hover:bg-primary-100 transition-colors"
+          >
+            <Brain className="w-3.5 h-3.5" />
+            查看备餐建议
+          </button>
 
           <select
             value={selectedStall}
