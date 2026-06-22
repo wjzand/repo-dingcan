@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Wallet,
   PiggyBank,
@@ -17,11 +18,13 @@ import { MEAL_TYPE_LABELS } from "@/types";
 const quickAmounts = [50, 100, 200, 500];
 
 export default function EmployeeBalance() {
+  const navigate = useNavigate();
   const currentUser = useAppStore((s) => s.currentUser);
   const consumptionRecords = useAppStore((s) => s.consumptionRecords);
   const subsidyRecords = useAppStore((s) => s.subsidyRecords);
   const topUpBalance = useAppStore((s) => s.topUpBalance);
   const [showTopUp, setShowTopUp] = useState(false);
+  const [showAllRecords, setShowAllRecords] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState(100);
   const [payMethod, setPayMethod] = useState<"wechat" | "alipay">("wechat");
   const [paying, setPaying] = useState(false);
@@ -171,13 +174,16 @@ export default function EmployeeBalance() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-gray-800 text-sm">交易明细</h2>
-          <button className="text-xs text-primary-500 text-sm flex items-center">
-            查看全部 <ChevronRight className="w-4 h-4" />
+          <button
+            onClick={() => setShowAllRecords(!showAllRecords)}
+            className="text-xs text-primary-500 text-sm flex items-center"
+          >
+            {showAllRecords ? "收起" : "查看全部"} <ChevronRight className={`w-4 h-4 transition-transform ${showAllRecords ? "rotate-90" : ""}`} />
           </button>
         </div>
 
         <div className="space-y-2">
-          {allRecords.slice(0, 8).map((record) => (
+          {allRecords.slice(0, showAllRecords ? undefined : 8).map((record) => (
             <div
               key={record.id}
               className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3"

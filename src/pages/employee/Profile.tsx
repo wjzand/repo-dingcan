@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
 import {
   User,
   Building2,
@@ -13,8 +14,18 @@ import {
   Bell,
   Moon,
   UserCog,
+  ShoppingCart,
+  TrendingUp,
+  TrendingDown,
+  Package,
+  AlertTriangle,
+  DollarSign,
+  Flame,
+  ChefHat,
 } from "lucide-react";
 import { useAppStore } from "@/store";
+import { DAILY_STATS, DISH_SALES_RANK, STALL_STATS, STALLS } from "@/data/mockData";
+import { MEAL_TYPE_LABELS, type MealType } from "@/types";
 
 const menuGroups = [
   {
@@ -82,8 +93,48 @@ const menuGroups = [
 export default function EmployeeProfile() {
   const navigate = useNavigate();
   const currentUser = useAppStore((s) => s.currentUser);
+  const orders = useAppStore((s) => s.orders);
   const logout = useAppStore((s) => s.logout);
   const switchViewMode = useAppStore((s) => s.switchViewMode);
+
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const dashboardStats = useMemo(() => {
+    const todayOrders = orders.filter((o) => o.date === todayStr);
+    return {
+      total: todayOrders.length,
+      pickedUp: todayOrders.filter((o) => o.status === "picked_up").length,
+      booked: todayOrders.filter((o) => o.status === "booked").length,
+      noShow: todayOrders.filter((o) => o.status === "no_show").length,
+      totalAmount: todayOrders.reduce((s, o) => s + o.totalAmount, 0),
+      subsidyAmount: todayOrders.reduce((s, o) => s + o.subsidyAmount, 0),
+      actualAmount: todayOrders.reduce((s, o) => s + o.actualAmount, 0),
+      bookingRate: Math.min(100, Math.round((todayOrders.length / 250) * 100)),
+      pickupRate: todayOrders.length
+        ? Math.round(
+            (todayOrders.filter((o) => o.status === "picked_up").length /
+              todayOrders.filter((o) => o.status !== "cancelled").length) *
+              100
+          )
+        : 0,
+    };
+  }, [orders, todayStr]);
+
+  const mealBreakdown = useMemo(() => {
+    const meals: MealType[] = ["breakfast", "lunch", "dinner", "supper"];
+    return meals.map((m) => ({
+      meal: m,
+      booked: orders.filter(
+        (o) => o.date === todayStr && o.mealType === m && o.status !== "cancelled"
+      ).length,
+      pickedUp: orders.filter(
+        (o) => o.date === todayStr && o.mealType === m && o.status === "picked_up"
+      ).length,
+    }));
+  }, [orders, todayStr]);
+
+  const maxMeal = Math.max(...mealBreakdown.map((m) => m.booked), 1);
+  const maxRankQty = Math.max(...DISH_SALES_RANK.map((d) => d.quantity), 1);
 
   const handleLogout = () => {
     logout();
@@ -158,6 +209,159 @@ export default function EmployeeProfile() {
             <div className="text-[11px] text-gray-500 mt-0.5">{item.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* 数据看板 */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-5 bg-primary-500 rounded-full" />
+            <h2 className="font-bold text-gray-800 text-sm">今日数据看板</h2>
+          </div>
+          <button
+            onClick={() => {
+              switchViewMode("admin");
+              navigate("/admin/dashboard");
+            }}
+            className="text-xs text-primary-500 flex items-center gap-0.5"
+          >
+            查看详情 <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          {[
+            { label: "今日预订", value: dashboardStats.total, icon: ShoppingCart, color: "text-blue-500", bg: "bg-blue-50" },
+            { label: "已取餐", value: dashboardStats.pickedUp, icon: Package, color: "text-success-500", bg: "bg-success-50" },
+            { label: "未取餐", value: dashboardStats.booked + dashboardStats.noShow, icon: AlertTriangle, color: "text-warning-500", bg: "bg-warning-50" },
+            { label: "订单金额", value: `¥${dashboardStats.actualAmount.toFixed(0)}`, icon: DollarSign, color: "text-primary-500", bg: "bg-primary-50" },
+          ].map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <div key={i} className={`${card.bg} rounded-2xl p-3.5`}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Icon className={`w-4 h-4 ${card.color}`} />
+                  <span className="text-[11px] text-gray-500">{card.label}</span>
+                </div>
+                <div className={`text-xl font-bold ${card.color}`}>{card.value}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 就餐率 */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mt-2.5">
+          <div className="text-xs font-semibold text-gray-700 mb-3">分餐别就餐情况</div>
+          <div className="space-y-2.5">
+            {mealBreakdown.map((m) => {
+              const pct = Math.round((m.booked / maxMeal) * 100);
+              const pickupPct = m.booked ? Math.round((m.pickedUp / m.booked) * 100) : 0;
+              return (
+                <div key={m.meal}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gray-600 font-medium">{MEAL_TYPE_LABELS[m.meal]}</span>
+                    <span className="text-[10px] text-gray-400">
+                      {m.booked}预订 · {m.pickedUp}取餐 · {pickupPct}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-50 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 菜品销量TOP5 */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mt-2.5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <Flame className="w-4 h-4 text-warning-500" />
+              <span className="text-xs font-semibold text-gray-700">菜品销量TOP5</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {DISH_SALES_RANK.slice(0, 5).map((d, i) => {
+              const pct = Math.max(8, (d.quantity / maxRankQty) * 100);
+              const rankColors = [
+                "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white",
+                "bg-gradient-to-r from-gray-300 to-gray-400 text-white",
+                "bg-gradient-to-r from-amber-600 to-amber-700 text-white",
+              ];
+              return (
+                <div key={d.dishId} className="flex items-center gap-2">
+                  <div
+                    className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold ${
+                      i < 3 ? rankColors[i] : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {i + 1}
+                  </div>
+                  <span className="text-xs text-gray-700 flex-1 truncate">{d.dishName}</span>
+                  <span className="text-xs font-bold text-gray-800">{d.quantity}份</span>
+                  <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        i === 0
+                          ? "bg-gradient-to-r from-yellow-400 to-warning-500"
+                          : "bg-gradient-to-r from-primary-400 to-primary-500"
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 7日趋势 */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mt-2.5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-gray-700">近7日趋势</span>
+            <div className="flex items-center gap-3 text-[10px]">
+              <div className="flex items-center gap-1">
+                <div className="w-2.5 h-2.5 rounded bg-primary-500" />
+                <span className="text-gray-400">预订</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2.5 h-2.5 rounded bg-success-500" />
+                <span className="text-gray-400">取餐</span>
+              </div>
+            </div>
+          </div>
+          <div className="h-24 flex items-end justify-between gap-1">
+            {DAILY_STATS.map((d) => {
+              const dayTotal = d.breakfast.booked + d.lunch.booked + d.dinner.booked;
+              const dayPicked = d.breakfast.pickedUp + d.lunch.pickedUp + d.dinner.pickedUp;
+              const maxDay = Math.max(
+                ...DAILY_STATS.map((s) => s.breakfast.booked + s.lunch.booked + s.dinner.booked),
+                1
+              );
+              const totalPct = Math.max(4, (dayTotal / maxDay) * 100);
+              const pickedPct = Math.max(4, (dayPicked / maxDay) * 100);
+              return (
+                <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full flex items-end justify-center gap-0.5 h-18">
+                    <div
+                      className="w-2.5 bg-gradient-to-t from-primary-500 to-primary-400 rounded-t"
+                      style={{ height: `${totalPct}%` }}
+                    />
+                    <div
+                      className="w-2.5 bg-gradient-to-t from-success-500 to-success-400 rounded-t"
+                      style={{ height: `${pickedPct}%` }}
+                    />
+                  </div>
+                  <div className="text-[9px] text-gray-400">{d.date.slice(8)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* 菜单分组 */}

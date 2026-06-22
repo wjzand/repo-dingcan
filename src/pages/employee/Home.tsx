@@ -56,6 +56,7 @@ export default function EmployeeHome() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [spicyFilter, setSpicyFilter] = useState<string | null>(null);
   const [toast, setToast] = useState<{ show: boolean; type: "success" | "error"; message: string }>({
     show: false,
@@ -190,12 +191,84 @@ export default function EmployeeHome() {
           <ChevronRight className="w-5 h-5" />
         </button>
         <button
+          onClick={() => setShowDatePicker(!showDatePicker)}
           className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50"
           title="选择日期"
         >
           <CalendarDays className="w-5 h-5" />
         </button>
       </div>
+
+      {showDatePicker && (
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => {
+                const d = new Date(today);
+                d.setMonth(d.getMonth() - 1);
+                setShowDatePicker(false);
+                setSelectedDate(formatDate(d));
+              }}
+              className="text-xs text-primary-500 font-medium"
+            >
+              上月
+            </button>
+            <span className="text-sm font-bold text-gray-800">
+              {today.getFullYear()}年{today.getMonth() + 1}月
+            </span>
+            <button
+              onClick={() => {
+                const d = new Date(today);
+                d.setMonth(d.getMonth() + 1);
+                setShowDatePicker(false);
+                setSelectedDate(formatDate(d));
+              }}
+              className="text-xs text-primary-500 font-medium"
+            >
+              下月
+            </button>
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {["日", "一", "二", "三", "四", "五", "六"].map((w) => (
+              <div key={w} className="text-[10px] text-gray-400 py-1 font-medium">{w}</div>
+            ))}
+            {(() => {
+              const year = today.getFullYear();
+              const month = today.getMonth();
+              const firstDay = new Date(year, month, 1).getDay();
+              const daysInMonth = new Date(year, month + 1, 0).getDate();
+              const cells = [];
+              for (let i = 0; i < firstDay; i++) {
+                cells.push(<div key={`empty-${i}`} />);
+              }
+              for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                const isToday = dateStr === formatDate(today);
+                const isSelected = dateStr === selectedDate;
+                cells.push(
+                  <button
+                    key={dateStr}
+                    onClick={() => {
+                      setSelectedDate(dateStr);
+                      setShowDatePicker(false);
+                    }}
+                    className={`w-8 h-8 rounded-lg text-xs font-medium flex items-center justify-center mx-auto transition-all ${
+                      isSelected
+                        ? "bg-primary-500 text-white shadow-sm"
+                        : isToday
+                        ? "bg-primary-50 text-primary-600 font-bold"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                );
+              }
+              return cells;
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* 信息卡片 */}
       <div className="grid grid-cols-3 gap-3">

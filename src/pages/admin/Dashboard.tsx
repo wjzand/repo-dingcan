@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   TrendingUp,
   Users,
@@ -19,6 +20,7 @@ import { DAILY_STATS, DISH_SALES_RANK, STALL_STATS, STALLS } from "@/data/mockDa
 import { MEAL_TYPE_LABELS, type MealType } from "@/types";
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const orders = useAppStore((s) => s.orders);
   const todayStr = new Date().toISOString().split("T")[0];
 
@@ -360,15 +362,16 @@ export default function AdminDashboard() {
             <h3 className="font-bold text-gray-800 mb-4">快捷入口</h3>
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { icon: UtensilsCrossed, label: "菜单管理", color: "text-primary-500", bg: "bg-primary-50" },
-                { icon: Package, label: "备餐统计", color: "text-blue-500", bg: "bg-blue-50" },
-                { icon: Wallet, label: "补贴发放", color: "text-success-500", bg: "bg-success-50" },
-                { icon: TrendingUp, label: "报表导出", color: "text-purple-500", bg: "bg-purple-50" },
+                { icon: UtensilsCrossed, label: "菜单管理", color: "text-primary-500", bg: "bg-primary-50", path: "/admin/menus" },
+                { icon: Package, label: "备餐统计", color: "text-blue-500", bg: "bg-blue-50", path: "/admin/orders" },
+                { icon: Wallet, label: "补贴发放", color: "text-success-500", bg: "bg-success-50", path: "/admin/subsidy" },
+                { icon: TrendingUp, label: "报表导出", color: "text-purple-500", bg: "bg-purple-50", path: "/admin/reports" },
               ].map((item, i) => {
                 const Icon = item.icon;
                 return (
                   <button
                     key={i}
+                    onClick={() => navigate(item.path)}
                     className={`${item.bg} rounded-xl p-3 flex flex-col items-center gap-1.5 hover:shadow-sm transition-all`}
                   >
                     <Icon className={`w-6 h-6 ${item.color}`} />
